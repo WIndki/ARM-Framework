@@ -1,0 +1,13 @@
+.env
+.worktrees/
+/data
+/memory
+/runtime
+__pycache__/
+*.py[cod]
+.pytest_cache/
+/dist
+/tests
+/docs
+.venv
+.ruff_cache/
