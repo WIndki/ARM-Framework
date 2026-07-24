@@ -126,4 +126,3 @@ Allowed statuses:
 - Do not create extra wrapper scripts when `memory.py` can express the operation.
 - Do not invent evidence, IDs, or line offsets.
 - Do not treat `inspect` as a complete memory update.
-- Do not activate meta-harness proposals as code during background memory maintenance.
