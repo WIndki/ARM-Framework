@@ -112,11 +112,12 @@ Without `MEMORIZER_MODEL`, the CLI uses placeholder agents for local harness che
 
 ### LoCoMo
 
+Dataset: Downloaded from [LoCoMo](https://github.com/snap-research/locomo).
 Metrics: token F1 and BLEU-1.
 
 ```powershell
 uv run python -m eval.locomo.run `
-  --dataset H:\data\locomo10.json `
+  --dataset .\eval\locomo\locomo10.json `
   --run-name locomo-run `
   --categories 1,2,3,4 `
   --session-batch-size 1 `
@@ -133,11 +134,12 @@ LoCoMo options:
 
 ### LongMemEval
 
+Dataset: Downloaded from [LongMemEval](https://github.com/xiaowu0162/longmemeval).
 Metric: LLM-as-judge accuracy.
 
 ```powershell
 uv run python -m eval.longmemeval.run `
-  --dataset H:\data\longmemeval_s_cleaned.json `
+  --dataset .\eval\longmemeval\longmemeval_s_cleaned.json `
   --run-name long-run `
   --session-batch-size 1 `
   --sample-workers 4
