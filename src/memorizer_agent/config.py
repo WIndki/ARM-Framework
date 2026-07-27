@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Any
 import os
 
-from dotenv import dotenv_values
+from dotenv import dotenv_values, load_dotenv
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel
 
@@ -27,7 +27,9 @@ def _first_value(values: dict[str, str | None], *names: str) -> str | None:
 
 def load_config() -> MemorizerConfig:
     cwd = Path.cwd()
-    values = dotenv_values(cwd / ".env")
+    env_path = cwd / ".env"
+    load_dotenv(env_path, override=False)
+    values = dotenv_values(env_path)
     workspace_value = _first_value(values, "MEMORIZER_WORKSPACE", "workspace") or "."
     workspace = Path(workspace_value)
     if not workspace.is_absolute():
