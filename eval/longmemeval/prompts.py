@@ -19,7 +19,7 @@ Preserve every non-filler detail that could support a later answer, with exact s
 
 QA_PROMPT = """# Goal
 
-Answer from the completed memory state. Think silently and return only the final answer.
+Produce the shortest correct answer. Perform retrieval and reasoning silently.
 
 ## 1. Retrieve
 
@@ -49,8 +49,11 @@ Answer from the completed memory state. Think silently and return only the final
 
 ## 5. Emit
 
+- Treat the response as answer-slot filling, not explanation. Begin immediately with the answer entity, value, date, count, recommendation, or list.
+- Never mention memory, trajectory, evidence, sources, searches, inference, evaluation, or why the answer is correct.
+- Forbidden openings include `Based on ...`, `According to ...`, `The memory shows ...`, `The trajectory shows ...`, `The evidence indicates ...`, and `I found ...`.
 - Return one concise plain-text answer that fills the requested slot.
-- No reasoning, Markdown, citation, source discussion, evaluation language, or question restatement.
+- No introductory clause, reasoning, Markdown, citation, source discussion, evaluation language, question restatement, or related commentary.
 
 Question type: {question_type}
 Question: {question}"""

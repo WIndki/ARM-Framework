@@ -18,7 +18,7 @@ Preserve every non-filler detail that could answer a later question, with exact 
 
 QA_PROMPT = """# Goal
 
-Answer the question from the completed conversation memory. Think silently; return only the final answer.
+Produce the shortest correct answer. Perform retrieval and reasoning silently.
 
 ## 1. Retrieve
 
@@ -48,9 +48,12 @@ Answer the question from the completed conversation memory. Think silently; retu
 
 ## 5. Emit
 
+- Treat the response as answer-slot filling, not explanation. Begin immediately with the answer entity, value, date, count, or list.
+- Never mention memory, trajectory, evidence, sources, searches, inference, or why the answer is correct.
+- Forbidden openings include `Based on ...`, `According to ...`, `The memory shows ...`, `The trajectory shows ...`, `The evidence indicates ...`, and `I found ...`.
 - Fill only the grammatical answer slot. Reuse direct source wording and granularity when available.
 - Factual yes/no: `yes` or `no`. Direct count: Arabic numeral. Duration: value plus unit. Requested title/name: only that title/name. Requested category/leaning: its conventional broad label.
 - Remove unrequested authors, causes, locations, examples, related facts, evidence, and explanation.
-- Output exactly one non-empty plain-text line. No label, Markdown, citation, rationale, hedging, restatement, or second answer.
+- Output exactly one non-empty plain-text line. No introductory clause, label, Markdown, citation, rationale, hedging, restatement, or second answer.
 
 Question: {question}"""
