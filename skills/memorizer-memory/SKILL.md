@@ -32,7 +32,9 @@ python skills/memorizer-memory/scripts/memory.py stage-episode --content '...' -
 python skills/memorizer-memory/scripts/memory.py commit --workspace .
 python skills/memorizer-memory/scripts/memory.py stage-semantic --content '...' --episode E-0001 --status active --trajectory-evidence trajectory.jsonl:L12-L18 --workspace .
 python skills/memorizer-memory/scripts/memory.py revise-belief --memory-id S-0001 --status superseded_by:S-0002 --workspace .
+python skills/memorizer-memory/scripts/memory.py revise-belief --memory-id S-0001 --status contradicted_by:S-0002 --workspace .
 python skills/memorizer-memory/scripts/memory.py clear-staging --workspace .
+
 ```
 
 PowerShell data arguments such as `--content` must use single quotes so `$` remains literal. Inside a single-quoted value, write an apostrophe as two apostrophes: `'User''s budget is $2,500.'` Never use double quotes for data containing `$`.
@@ -48,9 +50,10 @@ Version `0`, missing `memory/Memories.md`, missing ledger, missing snapshots, an
 3. Decide whether the new trajectory window has durable memory value.
 4. Stage Episodic Memory from physical trajectory line offsets.
 5. Commit episodes.
-6. Stage Semantic Memory from committed episode IDs when a stable preference, requirement, project decision, correction, or belief update is supported.
-7. Commit semantics and belief revisions.
-8. If staging is wrong or validation fails, run `clear-staging`, then restage.
+6. Evaluate potential semantic conflicts against active facts in `memory/Memories.md`.
+7. Stage Semantic Memory from committed episode IDs and apply appropriate belief revisions (`superseded_by` or `contradicted_by`).
+8. Commit semantics and belief revisions.
+9. If staging is wrong or validation fails, run `clear-staging`, then restage.
 
 Return `NO_DURABLE_MEMORY` only when the new trajectory window has no durable memory value. Fresh storage is not a blocker.
 
@@ -58,29 +61,36 @@ Return `NO_DURABLE_MEMORY` only when the new trajectory window has no durable me
 
 Create Episodic memories for concrete durable events:
 
-- user requirements, constraints, corrections, and approvals
-- assistant deliverables or implementation decisions the user may ask about later
-- important user feedback, preferences, or changes of direction
-- specific story, research, or project facts likely to be referenced later
-- non-redundant facts, answers, recommendations, commitments, or generated details stated by the Agent
+* user requirements, constraints, corrections, and approvals
+* assistant deliverables or implementation decisions the user may ask about later
+* important user feedback, preferences, or changes of direction
+* specific story, research, or project facts likely to be referenced later
+* non-redundant facts, answers, recommendations, commitments, or generated details stated by the Agent
 
-Inspect each trajectory record's `speaker`, `time`, and `content`. Every speaker
-is a valid memory source. Skip only exact repetition or genuinely low-value
-phrasing, never a fact merely because of its speaker label.
+Inspect each trajectory record's `speaker`, `time`, and `content`. Every speaker is a valid memory source. Skip only exact repetition or genuinely low-value phrasing, never a fact merely because of its speaker label.
 
-Time is selective, not mandatory. Before staging, ask whether removing `time`
-would change the event's meaning, order, duration, currentness, deadline,
-update semantics, or identity among repeated events. If not, omit it. Timeless
-preferences, owned tools, general facts, and standalone recommendations
-normally omit time. Completed events, plans, state changes, and temporal
-calculations often retain it. Never write internal session IDs into memory.
-Never ignore a relevant time and never invent one.
+Time is selective, not mandatory. Before staging, ask whether removing `time` would change the event's meaning, order, duration, currentness, deadline, update semantics, or identity among repeated events. If not, omit it. Timeless preferences, owned tools, general facts, and standalone recommendations normally omit time. Completed events, plans, state changes, and temporal calculations often retain it. Never write internal session IDs into memory. Never ignore a relevant time and never invent one.
 
 Do not memorize routine greetings, filler, duplicates, transient wording, or every assistant sentence.
 
 Episodic granularity should be narrow. If one trajectory window contains several meaningful requests, corrections, decisions, or deliverables, stage several Episodic records. Do not compress the whole window into one broad episode.
 
 Semantic memories are for stable beliefs and durable summaries, not a replacement for Episodic evidence. Prefer Semantic Memory for user preferences, long-lived project rules, current decisions, and belief status.
+
+## Conflict Resolution & Belief Revisions
+
+When an new semantic entry conflicts with an active fact, you need to evaluate whether the new fact explicitly overrides the old one or is temporally more recent:
+
+* **Explicit Override or Recency Confirmed:** The conflict is resolved by marking the prior entry as superseded (`superseded_by:S-new`) and activating the new entry with lineage links (e.g., Sec. 4.6 illustrates recency-based resolution).
+* **Indeterminate Recency:** If recency or precedence cannot be reliably determined, both entries must be flagged as contradicted with mutual cross-references (`contradicted_by:S-xxxx`).
+
+Allowed statuses:
+
+* `active`
+* `downgraded`
+* `stale`
+* `superseded_by:S-xxxx`
+* `contradicted_by:S-xxxx`
 
 ## Format Rules
 
@@ -92,13 +102,16 @@ Semantic memories are for stable beliefs and durable summaries, not a replacemen
 
 ## Semantic Memory
 [S-0001 active] content [Evidence: Memories.md:E-0001@L4; trajectory.jsonl:L21-L22]
+[S-0002 superseded_by:S-0003] old content [Evidence: Memories.md:E-0001@L4; trajectory.jsonl:L21-L22]
+[S-0003 active] new overriding content [Evidence: Memories.md:E-0002@L5; trajectory.jsonl:L35-L36]
+
 ```
 
 Each memory is one line. Evidence must include concrete line offset coordinates:
 
-- `trajectory.jsonl:L21`
-- `trajectory.jsonl:L21-L22`
-- `Memories.md:E-0001@L4`
+* `trajectory.jsonl:L21`
+* `trajectory.jsonl:L21-L22`
+* `Memories.md:E-0001@L4`
 
 Semantic memories must cite committed Episodic support. The gate computes the final `Memories.md:E-xxxx@Lx` offset.
 
@@ -108,21 +121,14 @@ When citing trajectory evidence, use the narrowest supporting range. Do not use 
 
 ## Append-Only Rules
 
-Do not delete, overwrite, renumber, or collapse memories. To change a belief, append a new Semantic Memory and revise the old status.
-
-Allowed statuses:
-
-- `active`
-- `downgraded`
-- `stale`
-- `superseded_by:S-xxxx`
-- `contradicted_by:S-xxxx`
+Do not delete, overwrite, renumber, or collapse memories. To change a belief, append a new Semantic Memory and revise the prior entry's status via `revise-belief`.
 
 ## Do Not
 
-- Do not call `memorizer-agent memory ...`; that command must not exist.
-- Do not edit `memory/Memories.md`, ledger, snapshots, diffs, or staging files directly.
-- Do not write durable memory with `write_file` or `edit_file`; durable writes go through `scripts/memory.py`.
-- Do not create extra wrapper scripts when `memory.py` can express the operation.
-- Do not invent evidence, IDs, or line offsets.
-- Do not treat `inspect` as a complete memory update.
+* Do not call `memorizer-agent memory ...`; that command must not exist.
+* Do not edit `memory/Memories.md`, ledger, snapshots, diffs, or staging files directly.
+* Do not write durable memory with `write_file` or `edit_file`; durable writes go through `scripts/memory.py`.
+* Do not create extra wrapper scripts when `memory.py` can express the operation.
+* Do not invent evidence, IDs, or line offsets.
+* Do not leave mutual contradictions one-sided when recency cannot be proven.
+* Do not treat `inspect` as a complete memory update.
